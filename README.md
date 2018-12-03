@@ -1,15 +1,13 @@
-# lprojection Projection layout for graphs.
+# lprojection 
+Projection layout for graphs.
 
 # Installation
 ```
 conda create -n lproj python=3.5   
 conda install -n lproj rdkit -c rdkit 
 source activate lproj
-pip install git+https://github.com/mortonjt/minstrel.git
+pip install git+https://gitlab.com/rsilvabioinfo/lprojection.git
 ```
-
-If you are getting errors, it is likely because you have garbage channels under your .condarc.  Make sure to delete your .condarc -- you shouldn't need it.
-
 # Getting started
 
 Run the following command to create a projection based layout file gml file colored by compound class. 

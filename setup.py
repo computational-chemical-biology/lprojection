@@ -5,7 +5,7 @@ setup(
     version='0.0.1',
     description='Projection layout for graphs',
     license='BSD-3-Clause',
-    packages=['hellostackoverflow'],
+    packages=['lprojection'],
     author='Ricardo R. da Silva',
     install_requires=[
           'pandas',
