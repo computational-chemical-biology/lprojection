@@ -14,7 +14,6 @@ setup(
           'matplotlib',
           'sklearn',
           'requests',
-          'optparse',
     ],
     scripts=['bin/layout_script', 'bin/tsne_optim'],
     author_email='ridasilva@ucsd.edu'
