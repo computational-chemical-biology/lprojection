@@ -1,0 +1,265 @@
+import pandas as pd
+import numpy as np
+import networkx as nx
+from sklearn.manifold import MDS, TSNE
+from sklearn.neighbors import DistanceMetric
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+import requests
+import io
+import re
+import time
+import colorsys
+from optparse import OptionParser
+from rdkit import Chem 
+from rdkit import DataStructs
+from rdkit.Chem.Fingerprints import FingerprintMols
+from rdkit.Chem import AllChem
+
+
+# https://stackoverflow.com/questions/876853/generating-color-ranges-in-python
+def get_N_HexCol(N=5):
+    HSV_tuples = [(x * 1.0 / N, 0.5, 0.5) for x in range(N)]
+    hex_out = []
+    for rgb in HSV_tuples:
+        rgb = map(lambda x: int(x * 255), colorsys.hsv_to_rgb(*rgb))
+        hex_out.append('#%02x%02x%02x' % tuple(rgb))
+    return hex_out
+
+
+def main():
+    parser = OptionParser(usage="usage: %prog [options]",
+                          version="%prog 1.0")
+    parser.add_option("-t", "--taskid",
+                      help="GNPS taskid")
+    parser.add_option("-w", "--workflow",
+                      default='MZmine',
+                      help="GNPS workflow: MZmine, V1, V2",)
+    parser.add_option("-s", "--scaling",
+		      type="float",
+                      default=100.0,
+                      help="Scaling factor for edge distance",)
+    parser.add_option("-p", "--projection",
+                      default='MDS',
+                      help="Projection method",)
+    parser.add_option("-I", "--iter",
+                      default=1000,
+                      help="Number iterations parameter range",)
+    parser.add_option("-P", "--perp",
+                      default=6,
+                      help="Perplexity parameter range",)
+    parser.add_option("-L", "--learn",
+                      default=200,
+                      help="Learnig rate parameter range",)
+
+    parser.add_option("-i", "--input",
+                      default='Cosine',
+                      help="Input for projection: Cosine, Feature intensities, Tanimoto",)
+    parser.add_option("-M", "--meta",
+                      default='',
+                      help="Optional metadata file",)
+    parser.add_option("-C", "--metac",
+                      default='',
+                      help="Metadata column label",)
+    parser.add_option("-g", "--graphml",
+                      default=1,
+                      help="Write standard graphml",)
+    parser.add_option("-F", "--fig",
+                      default=1,
+                      help="Plot espected layout",)
+
+    (options, args) = parser.parse_args()
+    
+    #taskid = '96407533b56c4c1bbd639144ddc00fa5'
+    taskid = options.taskid.split(',') 
+    workflow = options.workflow 
+    scaling_factor = options.scaling
+    projection = options.projection
+    minput = options.input
+    metac = options.metac
+    if options.meta!='':
+         anno = pd.read_table(options.meta) 
+
+    if workflow=='MZmine':
+        url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo_summary/" % (taskid[0])
+        url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networking_pairs_results_file_filtered/" % (taskid[0])
+        #url_to_clusterinfo = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=DB_result/" % (taskid)
+        url_to_features = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=quantification_table/" % (taskid[0])
+        #url_to_metadata = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=metadata_table/" % (taskid)
+        gnps = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
+        net = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
+        if len(taskid) > 1:
+            url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo_summary/" % (taskid[1])
+            url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networking_pairs_results_file_filtered/" % (taskid[1])
+            gnps1 = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
+            net1 = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
+    elif workflow=='V2':
+        url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/" % (taskid[0])
+        url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networkedges_selfloop/" % (taskid[0])
+        #url_to_clusterinfo = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo/" % (taskid)
+        #url_to_param = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=params/" % (taskid)
+        gnps = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
+        net = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
+        if len(taskid) > 1:
+            url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/" % (taskid[1])
+            url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networkedges_selfloop/" % (taskid[1])
+            gnps1 = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
+            net1 = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
+    
+    
+    #clusterinfo = pd.read_table(io.StringIO(requests.get(url_to_clusterinfo).text))
+    #metadata = pd.read_table(io.StringIO(requests.get(url_to_metadata).text))
+    
+    nlist = list(set(net['CLUSTERID1'].tolist()+net['CLUSTERID2'].tolist()))
+    nlist.sort()
+    nn = len(nlist)
+    
+    ndict = {}
+    for n in range(nn):
+        ndict[nlist[n]] = n
+    
+    if minput=='Cosine': 
+        m = np.empty([nn,nn])
+        m[:nn, :nn] = 0
+        for i in net.index:
+            m[ndict[net.loc[i, 'CLUSTERID1']], ndict[net.loc[i, 'CLUSTERID2']]] = net.loc[i, 'Cosine']  
+            m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = net.loc[i, 'Cosine']  
+        m = 1-m
+    elif minput=='Feature intensities': 
+        features = pd.read_csv(io.StringIO(requests.get(url_to_features).text))
+        features.index = features['row ID'] 
+        dist = DistanceMetric.get_metric('canberra')
+        m = dist.pairwise(features.loc[nlist][features.columns[3:]]) 
+    elif minput=='Tanimoto': 
+        ginchi = pd.merge(gnps[['cluster index', 'parent mass', 'LibraryID']], 
+			anno, left_on='cluster index', right_on='cluster index', how='left')
+        ginchi.index = ginchi['cluster index'] 
+        ginchi = ginchi.loc[list(ndict.keys())]
+
+        mols = [] 
+        for x in ginchi['INCHI']:
+            try:
+                mols.append(Chem.MolFromInchi(x))
+            except:
+                mols.append('')
+
+        m = np.empty([nn,nn])
+        m[:nn, :nn] = 0
+        for i in net.index:
+            p1 = np.where(ginchi.index==net.loc[i, 'CLUSTERID1'])[0][0]
+            p2 = np.where(ginchi.index==net.loc[i, 'CLUSTERID2'])[0][0]
+            try:
+                fp1 = AllChem.GetMorganFingerprint(mols[p1],2)
+                fp2 = AllChem.GetMorganFingerprint(mols[p2],2)
+             
+                m[ndict[net.loc[i, 'CLUSTERID1']], ndict[net.loc[i, 'CLUSTERID2']]] = DataStructs.TanimotoSimilarity(fp1,fp2)
+                m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = DataStructs.TanimotoSimilarity(fp1,fp2)
+            except:
+                m[ndict[net.loc[i, 'CLUSTERID1']], ndict[net.loc[i, 'CLUSTERID2']]] = net.loc[i, 'Cosine']  
+                m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = net.loc[i, 'Cosine']  
+        m = 1-m
+    
+    staskid = taskid[0][:10]
+
+    G1=nx.Graph()
+    G2=nx.Graph()
+    if len(taskid)>1: 
+        edge_list = net1[['CLUSTERID1', 'CLUSTERID2']].apply(lambda a: tuple(a.tolist()), axis=1).tolist()
+    else:
+        edge_list = net[['CLUSTERID1', 'CLUSTERID2']].apply(lambda a: tuple(a.tolist()), axis=1).tolist()
+
+    G1.add_edges_from(edge_list)
+    G2.add_edges_from(edge_list)
+    
+    if projection=='MDS':
+        embedding = MDS(n_components=2, dissimilarity='precomputed')
+        m_transformed = embedding.fit_transform(m)
+    elif projection=='TSNE':
+        #m_transformed = TSNE(n_components=2).fit_transform(m)
+        m_transformed = TSNE(n_components=2, n_iter=options.iter, perplexity=options.perp, 
+	                     learning_rate=options.learn, metric="precomputed").fit_transform(m) 
+    
+            
+    #pos=nx.spring_layout(G)
+    # Few test gnps attributes
+    gnps = gnps[['cluster index', 'parent mass', 'LibraryID']]
+    if options.meta!='':
+        anno.drop(['parent.mass', 'LibraryID', 'INCHI'], axis=1, inplace=True) 
+        gnps = pd.merge(gnps, anno, left_on='cluster index', right_on='cluster index', how='left')
+        gnps.fillna('', inplace=True) 
+        # How to create n distinct colors
+        lcol = np.array(list(set(gnps[metac])))
+        if len(lcol)>1:
+            col = get_N_HexCol(len(lcol))
+            dcol = dict(zip(lcol, col))         
+        gcol = {}
+
+   
+    gnps.index = gnps['cluster index'] 
+    gnps.columns = gnps.columns .str.replace(' ', '_')
+    for key, value in ndict.items():
+        dtmp = gnps.loc[key].to_dict()
+        if options.meta!='':
+            gcol[gnps.loc[key, 'cluster_index']] = dcol[gnps.loc[key, metac]]  
+        for k, v in dtmp.items():
+            nx.set_node_attributes(G1, k, {key: v}) 
+            nx.set_node_attributes(G2, k, {key: v}) 
+    
+    ptmp=nx.fruchterman_reingold_layout(G1) 
+    pos1 = {}
+    for kp, vp in ptmp.items():
+        if options.meta!='':
+            pos1[kp] = {'x' : 100*scaling_factor*ptmp[kp][0], 'y' : 100*scaling_factor*ptmp[kp][1], 'fill': gcol[kp] }
+        else:
+            pos1[kp] = { 'x' : 100*scaling_factor*ptmp[kp][0], 'y' : 100*scaling_factor*ptmp[kp][1]}
+
+    nx.set_node_attributes(G1,'graphics',pos1) 
+    nx.write_gml(G1, staskid+metac+'.gml')  
+
+    if options.fig:
+        with PdfPages(projection+'_'+minput+'_'+metac+'_2D_layout.pdf') as pdf:
+            gnps = gnps.loc[list(ndict.keys())]
+            fig, ax = plt.subplots()
+            for kk, vv  in dcol.items():
+                x = m_transformed[gnps[metac]==kk, :][:,0] 
+                y = m_transformed[gnps[metac]==kk, :][:,1] 
+                ax.scatter(x, y, c=vv,  label=kk
+            	                      )
+            #alpha=0.3
+            ax.legend(fontsize=6)
+            #ax.scatter(m_transformed[:, 0], m_transformed[:, 1], c=list(gcol.values()))
+            #ax.legend(handles, labels)
+            pdf.savefig()  # saves the current figure into a pdf page
+            plt.close()
+            fig, ax = plt.subplots()
+            for kk, vv  in dcol.items():
+                x = m_transformed[gnps[metac]==kk, :][:,0] 
+                y = m_transformed[gnps[metac]==kk, :][:,1] 
+                ax.scatter(x, y, c=vv,  label=kk
+            	                      )
+            pdf.savefig()  # saves the current figure into a pdf page
+            plt.close()
+            #plt.show()
+
+
+
+    pos = {}
+    for key, value in ndict.items():
+        #G.node[key]['x'] = float(m_transformed[value,0])
+        #G.node[key]['y'] = float(m_transformed[value,1])
+        if options.meta!='':
+            pos[key] = {'x' : scaling_factor*float(m_transformed[value,0]), 'y' : scaling_factor*float(m_transformed[value,1]), 'fill': gcol[key] }
+        else:
+            pos[key] = {'x' : scaling_factor*float(m_transformed[value,0]), 'y' : scaling_factor*float(m_transformed[value,1]) }
+    
+    #nx.write_graphml(G, "cosine_mds.graphml") 
+    nx.set_node_attributes(G2,'graphics',pos) 
+    nx.write_gml(G2, staskid+projection+minput+metac+'.gml')  
+    
+if __name__ == '__main__':
+    start_time = time.time()
+    main()
+    print("--- %s seconds ---" % (time.time() - start_time))
+
