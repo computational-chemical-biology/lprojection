@@ -13,7 +13,7 @@ pip install git+https://gitlab.com/rsilvabioinfo/lprojection.git
 Run the following command to create a projection based layout file gml file colored by compound class. 
 
 ```
-python layout_script.py \
+layout_script \
     -t '4fd90fa52ade4bdcb604945952964fa0,608e5eb3402f4dd599fcc88b1c8a40e9' \
     -p TSNE \
     -w V2 \
