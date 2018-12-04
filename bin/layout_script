@@ -1,12 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import pandas as pd
 import numpy as np
 import networkx as nx
 from sklearn.manifold import MDS, TSNE
 from sklearn.neighbors import DistanceMetric
-#import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import requests
@@ -14,11 +12,14 @@ import io
 import re
 import time
 import colorsys
-from optparse import OptionParser
 from rdkit import Chem 
 from rdkit import DataStructs
 from rdkit.Chem.Fingerprints import FingerprintMols
 from rdkit.Chem import AllChem
+
+@click.group()
+def layout_script():
+    pass
 
 
 # https://stackoverflow.com/questions/876853/generating-color-ranges-in-python
@@ -31,58 +32,57 @@ def get_N_HexCol(N=5):
     return hex_out
 
 
-def main():
-    parser = OptionParser(usage="usage: %prog [options]",
-                          version="%prog 1.0")
-    parser.add_option("-t", "--taskid",
-                      help="GNPS taskid")
-    parser.add_option("-w", "--workflow",
-                      default='MZmine',
-                      help="GNPS workflow: MZmine, V1, V2",)
-    parser.add_option("-s", "--scaling",
+@layout_script.command()
+@click.option("--taskid",
+                  help="GNPS taskid")
+@click.option("--workflow",
+                  default='MZmine',
+                  help="GNPS workflow: MZmine, V1, V2",)
+@click.option("--scaling",
 		      type="float",
-                      default=100.0,
-                      help="Scaling factor for edge distance",)
-    parser.add_option("-p", "--projection",
-                      default='MDS',
-                      help="Projection method",)
-    parser.add_option("-I", "--iter",
-                      default=1000,
-                      help="Number iterations parameter range",)
-    parser.add_option("-P", "--perp",
-                      default=6,
-                      help="Perplexity parameter range",)
-    parser.add_option("-L", "--learn",
-                      default=200,
-                      help="Learnig rate parameter range",)
+                  default=100.0,
+                  help="Scaling factor for edge distance",)
+@click.option("--projection",
+                  default='MDS',
+                  help="Projection method",)
+@click.option("--iter",
+                  default=1000,
+                  help="Number iterations parameter range",)
+@click.option("--perp",
+                  default=6,
+                  help="Perplexity parameter range",)
+@click.option("--learn",
+                  default=200,
+                  help="Learnig rate parameter range",)
 
-    parser.add_option("-i", "--input",
-                      default='Cosine',
-                      help="Input for projection: Cosine, Feature intensities, Tanimoto",)
-    parser.add_option("-M", "--meta",
-                      default='',
-                      help="Optional metadata file",)
-    parser.add_option("-C", "--metac",
-                      default='',
-                      help="Metadata column label",)
-    parser.add_option("-g", "--graphml",
-                      default=1,
-                      help="Write standard graphml",)
-    parser.add_option("-F", "--fig",
-                      default=1,
-                      help="Plot espected layout",)
+@click.option("--input",
+                  default='Cosine',
+                  help="Input for projection: Cosine, Feature intensities, Tanimoto",)
+@click.option("--meta",
+                  default='',
+                  help="Optional metadata file",)
+@click.option("--metac",
+                  default='',
+                  help="Metadata column label",)
+@click.option("--graphml",
+                  default=1,
+                  help="Write standard graphml",)
+@click.option("--fig",
+                  default=1,
+                  help="Plot espected layout",)
 
-    (options, args) = parser.parse_args()
-    
+def layout(taskid, workflow, scaling, projection,
+	   iter, perp, learn, input, meta, metac, 
+	   graphml, fig):
     #taskid = '96407533b56c4c1bbd639144ddc00fa5'
-    taskid = options.taskid.split(',') 
-    workflow = options.workflow 
-    scaling_factor = options.scaling
-    projection = options.projection
-    minput = options.input
-    metac = options.metac
-    if options.meta!='':
-         anno = pd.read_table(options.meta) 
+    taskid = taskid.split(',') 
+    workflow = workflow 
+    scaling_factor = scaling
+    projection = projection
+    minput = input
+    metac = metac
+    if meta!='':
+         anno = pd.read_table(meta) 
 
     if workflow=='MZmine':
         url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo_summary/" % (taskid[0])
@@ -180,14 +180,14 @@ def main():
         m_transformed = embedding.fit_transform(m)
     elif projection=='TSNE':
         #m_transformed = TSNE(n_components=2).fit_transform(m)
-        m_transformed = TSNE(n_components=2, n_iter=options.iter, perplexity=options.perp, 
-	                     learning_rate=options.learn, metric="precomputed").fit_transform(m) 
+        m_transformed = TSNE(n_components=2, n_iter=iter, perplexity=perp, 
+	                     learning_rate=learn, metric="precomputed").fit_transform(m) 
     
             
     #pos=nx.spring_layout(G)
     # Few test gnps attributes
     gnps = gnps[['cluster index', 'parent mass', 'LibraryID']]
-    if options.meta!='':
+    if meta!='':
         anno.drop(['parent.mass', 'LibraryID', 'INCHI'], axis=1, inplace=True) 
         gnps = pd.merge(gnps, anno, left_on='cluster index', right_on='cluster index', how='left')
         gnps.fillna('', inplace=True) 
@@ -203,7 +203,7 @@ def main():
     gnps.columns = gnps.columns .str.replace(' ', '_')
     for key, value in ndict.items():
         dtmp = gnps.loc[key].to_dict()
-        if options.meta!='':
+        if meta!='':
             gcol[gnps.loc[key, 'cluster_index']] = dcol[gnps.loc[key, metac]]  
         for k, v in dtmp.items():
             nx.set_node_attributes(G1, k, {key: v}) 
@@ -212,7 +212,7 @@ def main():
     ptmp=nx.fruchterman_reingold_layout(G1) 
     pos1 = {}
     for kp, vp in ptmp.items():
-        if options.meta!='':
+        if meta!='':
             pos1[kp] = {'x' : 100*scaling_factor*ptmp[kp][0], 'y' : 100*scaling_factor*ptmp[kp][1], 'fill': gcol[kp] }
         else:
             pos1[kp] = { 'x' : 100*scaling_factor*ptmp[kp][0], 'y' : 100*scaling_factor*ptmp[kp][1]}
@@ -220,7 +220,7 @@ def main():
     nx.set_node_attributes(G1,'graphics',pos1) 
     nx.write_gml(G1, staskid+metac+'.gml')  
 
-    if options.fig:
+    if fig:
         with PdfPages(projection+'_'+minput+'_'+metac+'_2D_layout.pdf') as pdf:
             gnps = gnps.loc[list(ndict.keys())]
             fig, ax = plt.subplots()
@@ -251,7 +251,7 @@ def main():
     for key, value in ndict.items():
         #G.node[key]['x'] = float(m_transformed[value,0])
         #G.node[key]['y'] = float(m_transformed[value,1])
-        if options.meta!='':
+        if meta!='':
             pos[key] = {'x' : scaling_factor*float(m_transformed[value,0]), 'y' : scaling_factor*float(m_transformed[value,1]), 'fill': gcol[key] }
         else:
             pos[key] = {'x' : scaling_factor*float(m_transformed[value,0]), 'y' : scaling_factor*float(m_transformed[value,1]) }
@@ -262,6 +262,6 @@ def main():
     
 if __name__ == '__main__':
     start_time = time.time()
-    main()
+    layout_script()
     print("--- %s seconds ---" % (time.time() - start_time))
 
