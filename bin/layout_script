@@ -57,9 +57,6 @@ def layout_script():
 @click.option("--graphml",
                   default=1,
                   help="Write standard graphml")
-@click.option("--fig",
-                  default=1,
-                  help="Plot espected layout")
 def layout(taskid, workflow, scaling, projection,
 	   liter, perp, learn, linput, meta, metac, 
 	   graphml, fig):
