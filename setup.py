@@ -15,7 +15,8 @@ setup(
           'sklearn',
           'requests',
           'click',
+          'cython',
     ],
-    scripts=['bin/layout_script', 'bin/tsne_optim', 'bin/hello'],
+    scripts=['bin/layout_script', 'bin/hello'],
     author_email='ridasilva@ucsd.edu'
 )
