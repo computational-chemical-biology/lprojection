@@ -71,7 +71,6 @@ def get_N_HexCol(N=5):
 @click.option("--fig",
                   default=1,
                   help="Plot espected layout")
-
 def layout(taskid, workflow, scaling, projection,
 	   iter, perp, learn, input, meta, metac, 
 	   graphml, fig):
