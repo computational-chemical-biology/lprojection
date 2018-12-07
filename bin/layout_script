@@ -39,39 +39,38 @@ def get_N_HexCol(N=5):
                   help="GNPS taskid")
 @click.option("--workflow",
                   default='MZmine',
-                  help="GNPS workflow: MZmine, V1, V2",)
+                  help="GNPS workflow: MZmine, V1, V2")
 @click.option("--scaling",
 		      type="float",
                   default=100.0,
-                  help="Scaling factor for edge distance",)
+                  help="Scaling factor for edge distance")
 @click.option("--projection",
                   default='MDS',
-                  help="Projection method",)
+                  help="Projection method")
 @click.option("--iter",
                   default=1000,
-                  help="Number iterations parameter range",)
+                  help="Number iterations parameter range")
 @click.option("--perp",
                   default=6,
-                  help="Perplexity parameter range",)
+                  help="Perplexity parameter range")
 @click.option("--learn",
                   default=200,
-                  help="Learnig rate parameter range",)
-
+                  help="Learnig rate parameter range")
 @click.option("--input",
                   default='Cosine',
-                  help="Input for projection: Cosine, Feature intensities, Tanimoto",)
+                  help="Input for projection: Cosine, Feature intensities, Tanimoto")
 @click.option("--meta",
                   default='',
-                  help="Optional metadata file",)
+                  help="Optional metadata file")
 @click.option("--metac",
                   default='',
-                  help="Metadata column label",)
+                  help="Metadata column label")
 @click.option("--graphml",
                   default=1,
-                  help="Write standard graphml",)
+                  help="Write standard graphml")
 @click.option("--fig",
                   default=1,
-                  help="Plot espected layout",)
+                  help="Plot espected layout")
 
 def layout(taskid, workflow, scaling, projection,
 	   iter, perp, learn, input, meta, metac, 
