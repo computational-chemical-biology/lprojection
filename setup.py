@@ -16,6 +16,6 @@ setup(
           'requests',
           'click',
     ],
-    scripts=['bin/layout_script', 'bin/tsne_optim'],
+    scripts=['bin/layout_script', 'bin/tsne_optim', 'bin/hello'],
     author_email='ridasilva@ucsd.edu'
 )
