@@ -204,8 +204,8 @@ def layout(taskid, workflow, scaling, projection,
         if meta!='':
             gcol[gnps.loc[key, 'cluster_index']] = dcol[gnps.loc[key, metac]]  
         for k, v in dtmp.items():
-            nx.set_node_attributes(G1, k, {key: v}) 
-            nx.set_node_attributes(G2, k, {key: v}) 
+            nx.set_node_attributes(G1, name=k, values={key: v}) 
+            nx.set_node_attributes(G2, name=k, values={key: v}) 
     
     ptmp=nx.fruchterman_reingold_layout(G1) 
     pos1 = {}
@@ -215,7 +215,7 @@ def layout(taskid, workflow, scaling, projection,
         else:
             pos1[kp] = { 'x' : 100*scaling_factor*ptmp[kp][0], 'y' : 100*scaling_factor*ptmp[kp][1]}
 
-    nx.set_node_attributes(G1,'graphics',pos1) 
+    nx.set_node_attributes(G1,name='graphics', values=pos1) 
     nx.write_gml(G1, staskid+metac+'.gml')  
 
     if fig:
@@ -253,7 +253,7 @@ def layout(taskid, workflow, scaling, projection,
             pos[key] = {'x' : scaling_factor*float(m_transformed[value,0]), 'y' : scaling_factor*float(m_transformed[value,1]) }
     
     #nx.write_graphml(G, "cosine_mds.graphml") 
-    nx.set_node_attributes(G2,'graphics',pos) 
+    nx.set_node_attributes(G2, name='graphics',values=pos) 
     nx.write_gml(G2, staskid+projection+minput+metac+'.gml')  
 
 @layout_script.command()
