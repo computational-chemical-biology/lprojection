@@ -17,6 +17,8 @@ from rdkit import DataStructs
 from rdkit.Chem.Fingerprints import FingerprintMols
 from rdkit.Chem import AllChem
 
+import click
+
 @click.group()
 def layout_script():
     pass
