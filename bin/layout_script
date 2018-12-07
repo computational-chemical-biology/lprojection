@@ -23,17 +23,6 @@ import click
 def layout_script():
     pass
 
-
-# https://stackoverflow.com/questions/876853/generating-color-ranges-in-python
-def get_N_HexCol(N=5):
-    HSV_tuples = [(x * 1.0 / N, 0.5, 0.5) for x in range(N)]
-    hex_out = []
-    for rgb in HSV_tuples:
-        rgb = map(lambda x: int(x * 255), colorsys.hsv_to_rgb(*rgb))
-        hex_out.append('#%02x%02x%02x' % tuple(rgb))
-    return hex_out
-
-
 @layout_script.command()
 @click.option("--taskid",
                   help="GNPS taskid")
@@ -47,7 +36,7 @@ def get_N_HexCol(N=5):
 @click.option("--projection",
                   default='MDS',
                   help="Projection method")
-@click.option("--iter",
+@click.option("--liter",
                   default=1000,
                   help="Number iterations parameter range")
 @click.option("--perp",
@@ -72,14 +61,14 @@ def get_N_HexCol(N=5):
                   default=1,
                   help="Plot espected layout")
 def layout(taskid, workflow, scaling, projection,
-	   iter, perp, learn, input, meta, metac, 
+	   liter, perp, learn, linput, meta, metac, 
 	   graphml, fig):
     #taskid = '96407533b56c4c1bbd639144ddc00fa5'
     taskid = taskid.split(',') 
     workflow = workflow 
     scaling_factor = scaling
     projection = projection
-    minput = input
+    minput = linput
     metac = metac
     if meta!='':
          anno = pd.read_table(meta) 
@@ -180,7 +169,7 @@ def layout(taskid, workflow, scaling, projection,
         m_transformed = embedding.fit_transform(m)
     elif projection=='TSNE':
         #m_transformed = TSNE(n_components=2).fit_transform(m)
-        m_transformed = TSNE(n_components=2, n_iter=iter, perplexity=perp, 
+        m_transformed = TSNE(n_components=2, n_iter=liter, perplexity=perp, 
 	                     learning_rate=learn, metric="precomputed").fit_transform(m) 
     
             
