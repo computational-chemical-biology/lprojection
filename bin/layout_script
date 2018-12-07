@@ -54,7 +54,7 @@ def layout_script():
 @click.option("--learn",
                   default=200,
                   help="Learnig rate parameter range")
-@click.option("--input",
+@click.option("--linput",
                   default='Cosine',
                   help="Input for projection: Cosine, Feature intensities, Tanimoto")
 @click.option("--meta",
