@@ -30,7 +30,6 @@ def layout_script():
                   default='MZmine',
                   help="GNPS workflow: MZmine, V1, V2")
 @click.option("--scaling",
-		      type="float",
                   default=100.0,
                   help="Scaling factor for edge distance")
 @click.option("--projection",
@@ -57,6 +56,9 @@ def layout_script():
 @click.option("--graphml",
                   default=1,
                   help="Write standard graphml")
+@click.option("--fig",
+                  default=1,
+                  help="Plot espected layout")
 def layout(taskid, workflow, scaling, projection,
 	   liter, perp, learn, linput, meta, metac, 
 	   graphml, fig):
