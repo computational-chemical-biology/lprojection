@@ -224,8 +224,8 @@ def layout(taskid, workflow, scaling, projection,
             gnps = gnps.loc[list(ndict.keys())]
             fig, ax = plt.subplots()
             for kk, vv  in dcol.items():
-                x = m_transformed[gnps[metac]==kk, :][:,0] 
-                y = m_transformed[gnps[metac]==kk, :][:,1] 
+                x = m_transformed[gnps[metac.replace('_', '')]==kk, :][:,0] 
+                y = m_transformed[gnps[metac.replace('_', '')]==kk, :][:,1] 
                 ax.scatter(x, y, c=vv,  label=kk
             	                      )
             #alpha=0.3
@@ -236,8 +236,8 @@ def layout(taskid, workflow, scaling, projection,
             plt.close()
             fig, ax = plt.subplots()
             for kk, vv  in dcol.items():
-                x = m_transformed[gnps[metac]==kk, :][:,0] 
-                y = m_transformed[gnps[metac]==kk, :][:,1] 
+                x = m_transformed[gnps[metac.replace('_', '')]==kk, :][:,0] 
+                y = m_transformed[gnps[metac.replace('_', '')]==kk, :][:,1] 
                 ax.scatter(x, y, c=vv,  label=kk
             	                      )
             pdf.savefig()  # saves the current figure into a pdf page
