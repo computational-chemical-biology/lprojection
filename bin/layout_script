@@ -217,7 +217,7 @@ def layout(taskid, workflow, scaling, projection,
             pos1[kp] = { 'x' : 100*scaling_factor*ptmp[kp][0], 'y' : 100*scaling_factor*ptmp[kp][1]}
 
     nx.set_node_attributes(G1,name='graphics', values=pos1) 
-    nx.write_gml(G1, staskid+metac+'.gml')  
+    nx.write_gml(G1, staskid+metac+'.gml', str)  
 
     if fig:
         with PdfPages(projection+'_'+minput+'_'+metac+'_2D_layout.pdf') as pdf:
