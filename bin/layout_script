@@ -21,8 +21,6 @@ import itertools
 from collections import Counter
 #import multiprocessing
 import matplotlib.cm as cm
-from sklearn.metrics import silhouette_samples, silhouette_score
-from sklearn.cluster import KMeans
 from lprojection.util import get_cluster
 from lprojection.util import get_caccuracy
 from lprojection.util import plot_silhouette
