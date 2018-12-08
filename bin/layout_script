@@ -203,7 +203,7 @@ def layout(taskid, workflow, scaling, projection,
     for key, value in ndict.items():
         dtmp = gnps.loc[key].to_dict()
         if meta!='':
-            gcol[gnps.loc[key, 'cluster-index']] = dcol[gnps.loc[key, metac.replace('_', '.')]]  
+            gcol[gnps.loc[key, 'cluster.index']] = dcol[gnps.loc[key, metac.replace('_', '.')]]  
         for k, v in dtmp.items():
             nx.set_node_attributes(G1, name=k, values={key: v}) 
             nx.set_node_attributes(G2, name=k, values={key: v}) 
