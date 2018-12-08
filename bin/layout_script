@@ -20,7 +20,6 @@ from lprojection.util import get_N_HexCol
 import itertools
 from collections import Counter
 #import multiprocessing
-import matplotlib.cm as cm
 from lprojection.util import get_cluster
 from lprojection.util import get_caccuracy
 from lprojection.util import plot_silhouette

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_samples, silhouette_score
+import matplotlib.cm as cm
 
 # https://stackoverflow.com/questions/876853/generating-color-ranges-in-python
 def get_N_HexCol(N=5):
