@@ -20,6 +20,7 @@ from lprojection.util import get_N_HexCol
 import itertools
 from collections import Counter
 #import multiprocessing
+from lprojection.gnps import Gnps 
 from lprojection.util import get_cluster
 from lprojection.util import get_caccuracy
 from lprojection.util import plot_silhouette
@@ -69,9 +70,9 @@ def layout_script():
 def layout(taskid, workflow, scaling, projection,
 	   liter, perp, learn, linput, meta, metac, 
 	   graphml, fig):
-    #taskid = '96407533b56c4c1bbd639144ddc00fa5'
-    taskid = taskid.split(',') 
-    workflow = workflow 
+    #taskid = taskid.split(',') 
+    #workflow = workflow 
+    gdict = Gnps(taskid, workflow).getGnps() 
     scaling_factor = scaling
     projection = projection
     minput = linput
@@ -79,36 +80,9 @@ def layout(taskid, workflow, scaling, projection,
     if meta!='':
          anno = pd.read_table(meta) 
 
-    if workflow=='MZmine':
-        url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo_summary/" % (taskid[0])
-        url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networking_pairs_results_file_filtered/" % (taskid[0])
-        #url_to_clusterinfo = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=DB_result/" % (taskid)
-        url_to_features = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=quantification_table/" % (taskid[0])
-        #url_to_metadata = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=metadata_table/" % (taskid)
-        gnps = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
-        net = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
-        if len(taskid) > 1:
-            url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo_summary/" % (taskid[1])
-            url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networking_pairs_results_file_filtered/" % (taskid[1])
-            gnps1 = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
-            net1 = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
-    elif workflow=='V2':
-        url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/" % (taskid[0])
-        url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networkedges_selfloop/" % (taskid[0])
-        #url_to_clusterinfo = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfo/" % (taskid)
-        #url_to_param = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=params/" % (taskid)
-        gnps = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
-        net = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
-        if len(taskid) > 1:
-            url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/" % (taskid[1])
-            url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networkedges_selfloop/" % (taskid[1])
-            gnps1 = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
-            net1 = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
-    
-    
-    #clusterinfo = pd.read_table(io.StringIO(requests.get(url_to_clusterinfo).text))
-    #metadata = pd.read_table(io.StringIO(requests.get(url_to_metadata).text))
-    
+   
+    gnps = gdict['gnps']
+    net = gdict['net']
     nlist = list(set(net['CLUSTERID1'].tolist()+net['CLUSTERID2'].tolist()))
     nlist.sort()
     nn = len(nlist)
@@ -158,11 +132,13 @@ def layout(taskid, workflow, scaling, projection,
                 m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = net.loc[i, 'Cosine']  
         m = 1-m
     
+    taskid = taskid.split(',') 
     staskid = taskid[0][:10]
 
     G1=nx.Graph()
     G2=nx.Graph()
-    if len(taskid)>1: 
+    if gdict['net1'] is not None: 
+        net1 = gdict['net1']
         edge_list = net1[['CLUSTERID1', 'CLUSTERID2']].apply(lambda a: tuple(a.tolist()), axis=1).tolist()
     else:
         edge_list = net[['CLUSTERID1', 'CLUSTERID2']].apply(lambda a: tuple(a.tolist()), axis=1).tolist()
