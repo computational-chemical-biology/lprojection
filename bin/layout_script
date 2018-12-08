@@ -198,7 +198,8 @@ def layout(taskid, workflow, scaling, projection,
 
    
     gnps.index = gnps['cluster index'] 
-    gnps.columns = gnps.columns .str.replace(' ', '-')
+    gnps.columns = gnps.columns.str.replace(' ', '-')
+    gnps.columns = gnps.columns.str.replace('_', '-')
     for key, value in ndict.items():
         dtmp = gnps.loc[key].to_dict()
         if meta!='':
