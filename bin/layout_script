@@ -255,7 +255,7 @@ def layout(taskid, workflow, scaling, projection,
     
     #nx.write_graphml(G, "cosine_mds.graphml") 
     nx.set_node_attributes(G2, name='graphics',values=pos) 
-    nx.write_gml(G2, staskid+projection+minput+metac+'.gml')  
+    nx.write_gml(G2, staskid+projection+minput+metac+'.gml, str)  
 
 @layout_script.command()
 @click.option("--taskid",
