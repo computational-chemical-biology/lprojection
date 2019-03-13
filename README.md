@@ -25,8 +25,9 @@ layout_script layout \
     --taskid '4fd90fa52ade4bdcb604945952964fa0' \
     --projection TSNE \
     --workflow V2 \
-    --scaling 150 \
+    --scaling 30 \
     --linput Cosine \
+    --cthr 0.7 \
     --meta data/associated_meta_inchi_match_full.tsv \
     --metac superclass_name
 
