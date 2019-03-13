@@ -55,6 +55,9 @@ def layout_script():
 @click.option("--linput",
                   default='Cosine',
                   help="Input for projection: Cosine, Feature intensities, Tanimoto")
+@click.option("--cthr",
+                  default=0.6,
+                  help="Cosine Threshold to display the edges.")
 @click.option("--meta",
                   default='',
                   help="Optional metadata file")
@@ -68,7 +71,7 @@ def layout_script():
                   default=1,
                   help="Plot espected layout")
 def layout(taskid, workflow, scaling, projection,
-	   liter, perp, learn, linput, meta, metac, 
+	   liter, cthr, perp, learn, linput, meta, metac, 
 	   graphml, fig):
     #taskid = taskid.split(',') 
     #workflow = workflow 
@@ -97,6 +100,13 @@ def layout(taskid, workflow, scaling, projection,
             m[ndict[net.loc[i, 'CLUSTERID1']], ndict[net.loc[i, 'CLUSTERID2']]] = net.loc[i, 'Cosine']  
             m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = net.loc[i, 'Cosine']  
         m = 1-m
+        net2 = net.loc[net['Cosine']>=cthr,:]
+        nlist2 = list(set(net2['CLUSTERID1'].tolist()+net2['CLUSTERID2'].tolist()))
+        nlist2.sort()
+        
+        ndict2 = {}
+        for n in nlist2:
+            ndict2[n] = ndict[n] 
     elif minput=='Feature intensities': 
         features = pd.read_csv(io.StringIO(requests.get(url_to_features).text))
         features.index = features['row ID'] 
@@ -161,6 +171,8 @@ def layout(taskid, workflow, scaling, projection,
         anno.drop(['parent.mass', 'LibraryID', 'INCHI'], axis=1, inplace=True) 
         gnps = pd.merge(gnps, anno, left_on='cluster index', right_on='cluster index', how='left')
         gnps.fillna('', inplace=True) 
+        if metac in gnps.columns:
+            gnps.loc[gnps[metac]=='', metac] = 'unassigned' 
         # How to create n distinct colors
         lcol = np.array(list(set(gnps[metac])))
         if len(lcol)>1:
@@ -217,7 +229,7 @@ def layout(taskid, workflow, scaling, projection,
             #plt.show()
 
     pos = {}
-    for key, value in ndict.items():
+    for key, value in ndict2.items():
         #G.node[key]['x'] = float(m_transformed[value,0])
         #G.node[key]['y'] = float(m_transformed[value,1])
         if meta!='':
