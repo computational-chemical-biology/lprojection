@@ -18,7 +18,7 @@ layout_script layout --help
 
 # Creating class colored tSNE layout 
 
-Run the following command to create a projection based layout file gml file colored by compound class. 
+Run the following command to create a projection based layout gml file, colored by compound class. 
 
 ```
 layout_script layout \

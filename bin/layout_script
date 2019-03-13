@@ -71,7 +71,7 @@ def layout_script():
                   default=1,
                   help="Plot espected layout")
 def layout(taskid, workflow, scaling, projection,
-	   liter, cthr, perp, learn, linput, meta, metac, 
+	   liter,  perp, learn, linput, cthr, meta, metac, 
 	   graphml, fig):
     #taskid = taskid.split(',') 
     #workflow = workflow 
