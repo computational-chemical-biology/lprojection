@@ -15,12 +15,13 @@ from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem.Fingerprints import FingerprintMols
 from rdkit.Chem import AllChem
-from lprojection.util import get_N_HexCol
 
 import itertools
 from collections import Counter
 #import multiprocessing
 from lprojection.gnps import Gnps
+from lprojection.util import get_N_HexCol
+from lprojection.util import dissimilarity_matrix
 from lprojection.util import get_cluster
 from lprojection.util import get_caccuracy
 from lprojection.util import plot_silhouette
