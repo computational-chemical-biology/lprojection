@@ -4,13 +4,13 @@ import requests
 import io
 
 class Gnps:
-    def __init__(self, taskid, workflow): 
-        """ Build GNPS node attributes and edge list 
+    def __init__(self, taskid, workflow):
+        """ Build GNPS node attributes and edge list
         Returns
         -------
         gnps  :  gnps task identification data
         """
-        self.taskid = taskid 
+        self.taskid = taskid
         self.workflow = workflow
 
     def description(self):
@@ -20,19 +20,19 @@ class Gnps:
         """ Sends a request to ProteoSAFe.
         Parameters
         ----------
-        taskid : str 
-           gnps task id 
-        workflow : str 
-           gnps workflow type 
+        taskid : str
+           gnps task id
+        workflow : str
+           gnps workflow type
         Returns
         -------
-        gnps : pandas.DataFrame 
+        gnps : pandas.DataFrame
             node attributes table.
-        net : pandas.DataFrame 
-            edge list 
+        net : pandas.DataFrame
+            edge list
         """
-        taskid = self.taskid 
-        taskid = taskid.split(',') 
+        taskid = self.taskid
+        taskid = taskid.split(',')
         workflow = self.workflow
         gdict = {}
 
@@ -48,8 +48,8 @@ class Gnps:
                 gdict['gnps1'] = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
                 gdict['net1'] = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
             else:
-                gdict['gnps1'] = None 
-                gdict['net1'] = None 
+                gdict['gnps1'] = None
+                gdict['net1'] = None
         elif workflow=='V2':
             url_to_attributes = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/" % (taskid[0])
             url_to_edges = "http://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task=%s&block=main&file=networkedges_selfloop/" % (taskid[0])
@@ -61,8 +61,7 @@ class Gnps:
                 gdict['gnps1'] = pd.read_table(io.StringIO(requests.get(url_to_attributes).text))
                 gdict['net1'] = pd.read_table(io.StringIO(requests.get(url_to_edges).text))
             else:
-                gdict['gnps1'] = None 
-                gdict['net1'] = None 
+                gdict['gnps1'] = None
+                gdict['net1'] = None
 
         return gdict
-     

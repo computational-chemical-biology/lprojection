@@ -6,6 +6,23 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_samples, silhouette_score
 import matplotlib.cm as cm
 
+import pandas as pd
+import numpy as np
+import networkx as nx
+from sklearn.manifold import MDS, TSNE
+from sklearn.neighbors import DistanceMetric
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+import requests
+import io
+import re
+import time
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem.Fingerprints import FingerprintMols
+from rdkit.Chem import AllChem
+
+
 # https://stackoverflow.com/questions/876853/generating-color-ranges-in-python
 def get_N_HexCol(N=5):
     HSV_tuples = [(x * 1.0 / N, 0.5, 0.5) for x in range(N)]
@@ -16,7 +33,7 @@ def get_N_HexCol(N=5):
     return hex_out
 
 def get_cluster(X, nclust):
-    silhouette_avg = [] 
+    silhouette_avg = []
     clabels = []
     for num_clusters in range(2,nclust):
         km = KMeans(n_clusters=num_clusters,
@@ -31,24 +48,88 @@ def get_cluster(X, nclust):
         silhouette_avg.append(silhouette_score(X, cluster_labels))
     return {'silhouette_avg': silhouette_avg, 'cluster_labels': clabels }
 
+def dissimilarity_matrix(gdict, minput='Cosine', anno=None, url_to_features=None):
+    """ Calculates dissimilarity matrix based on defined input
+    Parameters
+    ----------
+    gdict: dict 
+        Dictionary containing node attributes and edge list from GNPS. 
+    minput: str
+        Workflow type ('MZmine' or 'V2').
+    anno: pandas dataframe
+        Annotation table with classyfire class assignment and InChI.
+    url_to_features: str
+        url do GNPS-MZmine job.
+    Returns
+        Dissimilarity matrix.
+    -------
+    """
+    gnps = gdict['gnps']
+    net = gdict['net']
+    nlist = list(set(net['CLUSTERID1'].tolist()+net['CLUSTERID2'].tolist()))
+    nlist.sort()
+    nn = len(nlist)
+    ndict = {}
+    for n in range(nn):
+        ndict[nlist[n]] = n
+    if minput=='Cosine':
+        m = np.empty([nn,nn])
+        m[:nn, :nn] = 0
+        for i in net.index:
+            m[ndict[net.loc[i, 'CLUSTERID1']], ndict[net.loc[i, 'CLUSTERID2']]] = net.loc[i, 'Cosine']
+            m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = net.loc[i, 'Cosine']
+        m = 1-m
+    elif minput=='Feature intensities':
+        features = pd.read_csv(io.StringIO(requests.get(url_to_features).text))
+        features.index = features['row ID']
+        dist = DistanceMetric.get_metric('canberra')
+        m = dist.pairwise(features.loc[nlist][features.columns[3:]])
+    elif minput=='Tanimoto':
+        ginchi = pd.merge(gnps[['cluster index', 'parent mass', 'LibraryID']],
+                          anno, left_on='cluster index', right_on='cluster index', how='left')
+        ginchi.index = ginchi['cluster index']
+        ginchi = ginchi.loc[list(ndict.keys())]
+        mols = []
+        for x in ginchi['INCHI']:
+            try:
+                mols.append(Chem.MolFromInchi(x))
+            except:
+                mols.append('')
+        m = np.empty([nn,nn])
+        m[:nn, :nn] = 0
+        for i in net.index:
+            p1 = np.where(ginchi.index==net.loc[i, 'CLUSTERID1'])[0][0]
+            p2 = np.where(ginchi.index==net.loc[i, 'CLUSTERID2'])[0][0]
+            try:
+                fp1 = AllChem.GetMorganFingerprint(mols[p1],2)
+                fp2 = AllChem.GetMorganFingerprint(mols[p2],2)
+                m[ndict[net.loc[i, 'CLUSTERID1']], ndict[net.loc[i, 'CLUSTERID2']]] = DataStructs.TanimotoSimilarity(fp1,fp2)
+                m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = DataStructs.TanimotoSimilarity(fp1,fp2)
+            except:
+                m[ndict[net.loc[i, 'CLUSTERID1']], ndict[net.loc[i, 'CLUSTERID2']]] = net.loc[i, 'Cosine']
+                m[ndict[net.loc[i, 'CLUSTERID2']], ndict[net.loc[i, 'CLUSTERID1']]] = net.loc[i, 'Cosine']
+        m = 1-m
+    return m
+
+
 def get_caccuracy(clusters, gnps, metac, method='mean'):
     caccuracy = []
     for clabel in clusters['cluster_labels']:
-        gnps['clabel'] = clabel 
-        g = gnps.groupby(['clabel']) 
+        gnps['clabel'] = clabel
+        g = gnps.groupby(['clabel'])
         if method=='mean':
             caccuracy.append(g.apply(lambda a: max(Counter(a[metac]).values())/len(a) ).mean())
         elif method=='median':
             caccuracy.append(g.apply(lambda a: max(Counter(a[metac]).values())/len(a) ).median())
-        gnps.drop(['clabel'], axis=1, inplace=True) 
+        gnps.drop(['clabel'], axis=1, inplace=True)
     daccurary = {}
-    daccurary['maxSilhoutte'] = max(clusters['silhouette_avg']) 
+    daccurary['maxSilhoutte'] = max(clusters['silhouette_avg'])
     daccurary['maxSilhoutteN'] = np.where(np.array(clusters['silhouette_avg'])==daccurary['maxSilhoutte'])[0][0]+2
-    daccurary['maxCaccuracy'] = max(caccuracy) 
+    daccurary['maxCaccuracy'] = max(caccuracy)
     maxCaccuracyPos = np.where(np.array(caccuracy)==daccurary['maxCaccuracy'])[0][0]
     daccurary['maxCaccuracySilhoutte'] = clusters['silhouette_avg'][maxCaccuracyPos]
     daccurary['maxCaccuracyN'] = maxCaccuracyPos+2
-    return daccurary 
+    return daccurary
 
 def plot_silhouette(X, n_clusters, silhouette_avg, lpar, show=True):
     # Create a subplot with 1 row and 2 columns
@@ -111,7 +192,7 @@ def plot_silhouette(X, n_clusters, silhouette_avg, lpar, show=True):
     ax2.set_ylabel("Feature space for the 2nd feature")
     plt.suptitle(("Silhouette analysis for KMeans clustering on sample data "
                   "with n_clusters = %d" % n_clusters + '\n'+
-		  "n_iter=%d, perplexity=%d, learning_rate=%d" % lpar),
+                  "n_iter=%d, perplexity=%d, learning_rate=%d" % lpar),
                  fontsize=14, fontweight='bold')
     if show:
         plt.show()
