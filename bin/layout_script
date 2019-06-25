@@ -318,6 +318,7 @@ def tsne_optim(taskid, workflow, projection,
 
 if __name__ == '__main__':
     start_time = time.time()
+    from lprojection.util import dissimilarity_matrix
     layout_script()
     print("--- %s seconds ---" % (time.time() - start_time))
 
