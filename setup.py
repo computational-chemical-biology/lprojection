@@ -17,6 +17,6 @@ setup(
           'click',
           'cython',
     ],
-    scripts=['bin/layout_script', 'bin/hello'],
+    scripts=['bin/layout_script'],
     author_email='ridasilva@ucsd.edu'
 )
